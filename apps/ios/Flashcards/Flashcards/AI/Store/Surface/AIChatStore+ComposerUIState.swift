@@ -179,12 +179,14 @@ extension AIChatStore {
         }
     }
 
-    func consumeCompletedDictationTranscript(id: String) {
+    @discardableResult
+    func consumeCompletedDictationTranscript(id: String) -> Bool {
         guard self.completedDictationTranscript?.id == id else {
-            return
+            return false
         }
 
         self.completedDictationTranscript = nil
+        return true
     }
 
     func applyPresentationRequest(request: AIChatPresentationRequest) -> Bool {

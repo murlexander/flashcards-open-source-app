@@ -73,6 +73,10 @@ The Langfuse and App Store Connect credentials live in the repository-root `.env
 
 Use a single monorepo for now because it keeps shared API contracts and the data model together, makes coordinated backend/mobile changes easier, and lowers operational overhead at this stage.
 
+## Pull Request Workflow
+
+- When opening a pull request, enable GitHub's `Allow edits by maintainers` option. `main` moves quickly and branch protection requires pull request branches to stay up to date; maintainers need permission to update the branch so the pull request does not get stuck behind the base branch.
+
 ## Architecture
 
 - Source of truth: Postgres in AWS

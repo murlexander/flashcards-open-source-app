@@ -54,6 +54,8 @@ struct ReviewCardSideView: View {
                                 .foregroundStyle(.secondary)
                                 .frame(width: 32, height: 32)
                                 .background(.thinMaterial, in: Circle())
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(
@@ -79,6 +81,8 @@ struct ReviewCardSideView: View {
                                 .frame(height: 32)
                                 .padding(.horizontal, 11)
                                 .background(Color.accentColor, in: Capsule())
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier(UITestIdentifier.reviewAiButton)

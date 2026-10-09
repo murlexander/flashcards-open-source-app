@@ -81,12 +81,15 @@ extension AIChatView {
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundStyle(.secondary)
+                                            .frame(minWidth: 44, minHeight: 44)
+                                            .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(self.chatStore.canModifyDraftAttachments == false)
+                                    .accessibilityLabel(aiSettingsLocalized("common.delete", "Delete"))
+                                    .accessibilityValue(self.composerAttachmentAccessibilityValue(attachment))
                                 }
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
                                 .background(.thinMaterial, in: Capsule())
                             }
                         }
@@ -147,30 +150,38 @@ extension AIChatView {
                     Button {
                         self.handlePrimaryComposerAction()
                     } label: {
-                        if self.chatStore.bootstrapPhase == .loading
-                            || self.chatStore.composerPhase == .preparingSend {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(
-                                    width: aiChatComposerSendButtonVisualSize,
-                                    height: aiChatComposerSendButtonVisualSize
-                                )
-                        } else {
-                            Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 28))
-                                .frame(
-                                    width: aiChatComposerSendButtonVisualSize,
-                                    height: aiChatComposerSendButtonVisualSize
-                                )
-                                .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
+                        Group {
+                            if self.chatStore.bootstrapPhase == .loading
+                                || self.chatStore.composerPhase == .preparingSend {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                            } else {
+                                Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
+                                    .font(.system(size: 28))
+                                    .frame(
+                                        width: aiChatComposerSendButtonVisualSize,
+                                        height: aiChatComposerSendButtonVisualSize
+                                    )
+                                    .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
+                            }
                         }
+                        .padding(.trailing, aiChatComposerSendButtonInset)
+                        .padding(.bottom, aiChatComposerSendButtonInset)
+                        .frame(
+                            width: aiChatComposerSendButtonHitSize,
+                            height: aiChatComposerSendButtonHitSize,
+                            alignment: .bottomTrailing
+                        )
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
                     .accessibilityLabel(self.primaryComposerButtonAccessibilityLabel)
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
-                    .padding(.trailing, aiChatComposerSendButtonInset)
-                    .padding(.bottom, aiChatComposerSendButtonInset)
                 }
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(alignment: .topLeading) {
@@ -233,6 +244,21 @@ extension AIChatView {
             }
             .padding(.top, aiChatComposerTopPadding)
             .padding(.bottom, 16)
+        }
+    }
+
+    private func composerAttachmentAccessibilityValue(_ attachment: AIChatAttachment) -> String {
+        switch attachment.payload {
+        case .binary(let fileName, _, _):
+            return fileName
+        case .card(let card):
+            return aiChatCardAttachmentLabel(card: card)
+        case .unknown(let unknownAttachment):
+            return aiSettingsLocalizedFormat(
+                "ai.composer.attachment.unsupported",
+                "Unsupported attachment (%@)",
+                unknownAttachment.originalType
+            )
         }
     }
 

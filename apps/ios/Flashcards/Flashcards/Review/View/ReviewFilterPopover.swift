@@ -8,6 +8,7 @@ private let reviewFilterRowVerticalPadding: CGFloat = 11
 private let reviewFilterRowSpacing: CGFloat = 12
 
 struct ReviewFilterPopover: View {
+    @Environment(\.dismiss) private var dismiss
     @Binding var reviewFilter: ReviewFilter
     let deckSummaries: [DeckSummary]
     let tagSummaries: [WorkspaceTagSummary]
@@ -44,6 +45,22 @@ struct ReviewFilterPopover: View {
     }
 
     var body: some View {
+        NavigationStack {
+            self.filterContent
+                .navigationTitle(String(localized: "Review", table: "ReviewCards"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(String(localized: "Done", table: "ReviewCards")) {
+                            self.dismiss()
+                        }
+                    }
+                }
+        }
+        .frame(idealWidth: reviewFilterPopoverWidth, idealHeight: reviewFilterPopoverHeight)
+    }
+
+    private var filterContent: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 self.allCardsButton
@@ -69,7 +86,6 @@ struct ReviewFilterPopover: View {
         }
         .scrollPosition(self.$scrollPosition)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterScrollSurface)
-        .frame(width: reviewFilterPopoverWidth, height: reviewFilterPopoverHeight)
     }
 
     private var allCardsButton: some View {
@@ -104,12 +120,13 @@ struct ReviewFilterPopover: View {
                 Image(systemName: "square.stack.3d.up")
                     .frame(width: reviewFilterSelectionColumnWidth)
                 Text(String(localized: "Edit decks", table: "ReviewCards"))
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -142,12 +159,13 @@ struct ReviewFilterPopover: View {
                     .frame(width: reviewFilterSelectionColumnWidth)
 
                 Text(title)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

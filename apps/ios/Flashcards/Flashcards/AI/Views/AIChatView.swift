@@ -97,7 +97,21 @@ struct AIChatView: View {
     @Environment(FlashcardsStore.self) var flashcardsStore: FlashcardsStore
     @Environment(AppNavigationModel.self) var navigation: AppNavigationModel
     @Environment(\.scenePhase) var scenePhase
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.isKeyboardDocked) private var isKeyboardDocked
     let chatStore: AIChatStore
+    let isCompanion: Bool
+    let isCompanionLeading: Bool
+    let companionHostTab: AppTab?
+
+    var isPresentationActive: Bool {
+        self.isCompanion
+            ? self.navigation.isAICompanionVisible
+                && self.navigation.isAICompanionLeading == self.isCompanionLeading
+                && (self.companionHostTab == nil || self.navigation.selectedTab == self.companionHostTab)
+            : self.navigation.selectedTab == .ai
+    }
     @State var isCameraPresented: Bool
     @State var isFileImporterPresented: Bool
     @State var isPhotoPickerPresented: Bool
@@ -109,8 +123,11 @@ struct AIChatView: View {
     @FocusState var isComposerFocused: Bool
 
     @MainActor
-    init(chatStore: AIChatStore) {
+    init(chatStore: AIChatStore, isCompanion: Bool = false, isCompanionLeading: Bool = false, companionHostTab: AppTab? = nil) {
         self.chatStore = chatStore
+        self.isCompanion = isCompanion
+        self.isCompanionLeading = isCompanionLeading
+        self.companionHostTab = companionHostTab
         self.isCameraPresented = false
         self.isFileImporterPresented = false
         self.isPhotoPickerPresented = false
@@ -180,8 +197,8 @@ struct AIChatView: View {
             .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
                 self.handleSurfaceInputsChange()
             }
-            .onChange(of: self.navigation.selectedTab) { _, nextTab in
-                self.handleSelectedTabChange(nextTab: nextTab)
+            .onChange(of: self.isPresentationActive) { _, isVisible in
+                self.handleChatVisibilityChange(isVisible: isVisible)
             }
             .onChange(of: self.chatStore.dictationState) { _, nextState in
                 self.handleDictationStateViewChange(nextState: nextState)
@@ -194,17 +211,31 @@ struct AIChatView: View {
             }
     }
 
+    @ViewBuilder
     var bodyBaseModifiers: some View {
+        if self.isCompanion {
+            self.bodyCommonModifiers
+                .safeAreaBar(edge: .top, spacing: 0) {
+                    self.companionHeader
+                }
+        } else {
+            self.bodyCommonModifiers
+                .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    self.toolbarContent
+                }
+        }
+    }
+
+    var bodyCommonModifiers: some View {
         self.bodyContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier(UITestIdentifier.aiScreen)
-            .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
-            .navigationBarTitleDisplayMode(.inline)
             .safeAreaBar(edge: .bottom, spacing: 0) {
                 self.bottomBarContent
             }
-            .toolbar {
-                self.toolbarContent
-            }
+            .ignoresSafeArea(self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
     }
 
     var bodyContent: some View {
@@ -285,8 +316,10 @@ struct AIChatView: View {
     var toolbarContent: some ToolbarContent {
         if self.accessState == .ready {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(aiSettingsLocalized("ai.newChat", "New")) {
+                Button {
                     self.chatStore.clearHistory()
+                } label: {
+                    Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
                 }
                 .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
                 .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
@@ -467,7 +500,7 @@ struct AIChatView: View {
     func currentSurfaceActivity() -> AIChatSurfaceActivity {
         AIChatSurfaceActivity(
             isSceneActive: self.scenePhase == .active,
-            isAITabSelected: self.navigation.selectedTab == .ai,
+            isAITabSelected: self.navigation.isAIChatVisible,
             hasExternalProviderConsent: self.chatStore.hasExternalProviderConsent,
             workspaceId: self.flashcardsStore.workspace?.workspaceId,
             cloudState: self.flashcardsStore.cloudSettings?.cloudState,
@@ -490,7 +523,7 @@ struct AIChatView: View {
         request: AIChatPresentationRequest?,
         source: AIChatPresentationLifecycleSource
     ) {
-        guard let request else {
+        guard self.isPresentationActive, let request else {
             return
         }
 
@@ -516,7 +549,7 @@ struct AIChatView: View {
             request: resolvedRequest,
             source: source
         )
-        guard self.navigation.selectedTab == .ai else {
+        guard self.isPresentationActive else {
             self.logAIChatPresentationLifecycle(
                 event: .waitingForAITab,
                 source: source,
@@ -744,6 +777,7 @@ struct AIChatView: View {
 
     func handleViewAppear() {
         self.syncChatSurface(refreshConsent: true)
+        self.handleCompletedDictationTranscriptChange(nextTranscript: self.chatStore.completedDictationTranscript)
         self.captureAIChatPresentationRequest(
             request: self.navigation.aiChatPresentationRequest,
             source: .viewAppear
@@ -762,7 +796,7 @@ struct AIChatView: View {
         guard self.deferredPresentationRequest != nil else {
             return
         }
-        guard self.navigation.selectedTab == .ai else {
+        guard self.isPresentationActive else {
             self.handleAIChatPresentationRequest(
                 request: self.deferredPresentationRequest,
                 source: .navigationRequestChange
@@ -832,8 +866,8 @@ struct AIChatView: View {
         )
     }
 
-    func handleSelectedTabChange(nextTab: AppTab) {
-        guard nextTab == .ai else {
+    func handleChatVisibilityChange(isVisible: Bool) {
+        guard isVisible else {
             self.syncChatSurface(refreshConsent: false)
             return
         }
@@ -907,6 +941,7 @@ let aiChatComposerMaximumLineCount: Int = 5
 let aiChatComposerTopPadding: CGFloat = 8
 let aiChatComposerSendButtonInset: CGFloat = 8
 let aiChatComposerSendButtonVisualSize: CGFloat = 28
+let aiChatComposerSendButtonHitSize: CGFloat = 44
 let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
 let aiChatComposerStatusLaneHeight: CGFloat = 24
 let aiChatComposerStatusLaneSpacing: CGFloat = 8
