@@ -22,7 +22,7 @@
     "@langfuse/openai": "^5.11.0",
     "@langfuse/otel": "^5.11.0",
     "@langfuse/tracing": "^5.11.0",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@opentelemetry/instrumentation": "^0.222.0",
     "@opentelemetry/sdk-trace-base": "^2.11.0",
     "@sentry/aws-serverless": "^10.73.0",
